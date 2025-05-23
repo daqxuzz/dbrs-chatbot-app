@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DBR's - Mental Health Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Basic reset and body styling */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #f0f4f8; /* Softer, calming light blue-gray */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 1rem; 
+            box-sizing: border-box;
+        }
+        /* Main chat container styling */
+        .chat-container {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 650px; /* Slightly wider for better readability */
+            height: 90vh; /* Use viewport height */
+            max-height: 750px; /* Cap the height */
+            background-color: #FFFFFF; /* White background for the chat area */
+            border-radius: 16px; /* More rounded corners */
+            box-shadow: 0 12px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08); /* Softer, layered shadow */
+            overflow: hidden; /* Ensures content stays within rounded corners */
+        }
+        /* Chat header styling */
+        .chat-header {
+            background-color: #60a5fa; /* Calming blue */
+            color: #ffffff; /* White text */
+            padding: 1.25rem; /* Increased padding */
+            text-align: center;
+            font-size: 1.35rem; /* Slightly larger font */
+            font-weight: 600;
+            border-bottom: 1px solid #3b82f6; /* Darker blue accent for separation */
+            flex-shrink: 0; /* Prevent header from shrinking */
+        }
+        /* Chat messages area styling */
+        .chat-messages {
+            flex-grow: 1; /* Allows this area to take up available space */
+            padding: 1.25rem; /* Increased padding */
+            overflow-y: auto; /* Enable vertical scrolling for messages */
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem; /* Space between messages (14px) */
+            background-color: #f9fafb; /* Very light off-white for message area background */
+        }
+        /* Individual message styling */
+        .message {
+            padding: 0.75rem 1.125rem; /* Padding inside messages (12px 18px) */
+            border-radius: 20px; /* More rounded messages */
+            max-width: 85%; /* Max width of a message bubble */
+            line-height: 1.6; /* Improve readability */
+            word-wrap: break-word; /* Ensure long words break to next line */
+            white-space: pre-wrap; /* Preserve line breaks and spaces from bot's response */
+            opacity: 0; /* Start hidden for animation */
+            transform: translateY(15px); /* Start slightly lower for animation */
+            animation: fadeInMessage 0.4s ease-out forwards; /* Fade-in animation */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05); /* Subtle shadow on messages */
+        }
+
+        /* Keyframes for message fade-in animation */
+        @keyframes fadeInMessage {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* User message specific styling */
+        .user-message {
+            background-color: #93c5fd; /* Lighter blue for user messages */
+            color: #1e3a8a; /* Dark blue text for contrast */
+            align-self: flex-end; /* Align user messages to the right */
+            border-bottom-right-radius: 6px; /* Softer edge for bubble tail effect */
+        }
+        /* Bot message specific styling */
+        .bot-message {
+            background-color: #e0e7ff; /* Light lavender/blue for bot messages */
+            color: #3730a3; /* Indigo text for bot */
+            align-self: flex-start; /* Align bot messages to the left */
+            border-bottom-left-radius: 6px; /* Softer edge for bubble tail effect */
+        }
+        /* Styling for "thinking" or "listening" status messages */
+        .bot-thinking-message, .voice-status-message { 
+            background-color: #e5e7eb; /* Light gray for status messages */
+            color: #4b5563; /* Darker gray text */
+            align-self: flex-start; /* Align to the left */
+            font-style: italic;
+            border-bottom-left-radius: 6px;
+            /* Ensure status messages also use the fade-in animation */
+            opacity: 0; 
+            transform: translateY(15px); 
+            animation: fadeInMessage 0.4s ease-out forwards;
+        }
+        /* Chat input area styling */
+        .chat-input-area {
+            display: flex;
+            align-items: center; /* Align input field and buttons vertically */
+            padding: 1rem; 
+            border-top: 1px solid #e5e7eb; /* Light gray border for separation */
+            background-color: #fff; /* White background for input area */
+            flex-shrink: 0; /* Prevent input area from shrinking */
+            gap: 0.5rem; /* Space between input field and buttons */
+        }
+        /* Text input field styling */
+        .chat-input-area input {
+            flex-grow: 1; /* Input field takes available space */
+            border: 1px solid #9ca3af; /* Medium gray border */
+            border-radius: 24px; /* Pill shape */
+            padding: 0.75rem 1.25rem; /* Padding inside input (12px 20px) */
+            font-size: 1rem;
+            outline: none; /* Remove default focus outline */
+            transition: border-color 0.2s ease, box-shadow 0.2s ease; /* Smooth transitions */
+        }
+        /* Input field focus styling */
+        .chat-input-area input:focus {
+            border-color: #3b82f6; /* Blue border on focus */
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3); /* Blue glow effect */
+        }
+        /* General button styling in input area */
+        .chat-input-area button {
+            background-color: #3b82f6; /* Blue button */
+            color: #ffffff; /* White text/icon */
+            border: none;
+            padding: 0.75rem 1.25rem; /* Padding for send button */
+            border-radius: 24px; /* Pill shape */
+            cursor: pointer;
+            font-weight: 500;
+            transition: background-color 0.2s ease, transform 0.1s ease; /* Smooth transitions */
+            display: flex; 
+            align-items: center;
+            justify-content: center;
+        }
+        /* Specific styling for voice input button */
+        .chat-input-area button#voiceInputBtn { 
+            padding: 0.75rem; /* Make it more circular by adjusting padding */
+            width: 48px; /* Fixed width for a circular look */
+            height: 48px; /* Fixed height */
+            font-size: 1.2rem; /* Icon size */
+        }
+        /* Button hover effect */
+        .chat-input-area button:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-1px); /* Slight lift effect */
+        }
+        /* Disabled button styling */
+        .chat-input-area button:disabled {
+            background-color: #9ca3af; /* Gray when disabled */
+            cursor: not-allowed;
+            transform: translateY(0); /* No lift effect when disabled */
+        }
+        /* Startup questions container styling */
+        .startup-questions-container {
+            padding: 1.5rem; /* More padding */
+            text-align: center;
+            flex-shrink: 0; 
+            background-color: #f9fafb; /* Consistent with messages background */
+        }
+        /* Startup question button styling */
+        .startup-question-btn {
+            display: block;
+            width: 100%; 
+            max-width: 450px; 
+            margin: 0.75rem auto; /* Spacing (12px) and centering */
+            padding: 0.9rem 1rem; 
+            background-color: #e0e7ff; /* Light lavender/blue */
+            border: 1px solid #c7d2fe; /* Slightly darker border */
+            color: #3730a3; /* Indigo text */
+            border-radius: 10px; /* Rounded buttons */
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease, box-shadow 0.1s ease;
+            text-align: left; /* Align text to the left within buttons */
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+        /* Startup question button hover effect */
+        .startup-question-btn:hover {
+            background-color: #c7d2fe; /* Darker on hover */
+            transform: translateY(-2px); /* Slight lift on hover */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.07); /* Subtle shadow on hover */
+        }
+        /* Disclaimer text styling */
+        .disclaimer {
+            font-size: 0.8rem; /* Smaller disclaimer text */
+            color: #6b7280; /* Medium gray */
+            text-align: center;
+            padding: 1rem; 
+            background-color: #f0f4f8; /* Match body background */
+            flex-shrink: 0; 
+            border-top: 1px solid #e5e7eb; /* Separation line */
+        }
+        /* Custom scrollbar styling (WebKit browsers like Chrome, Safari) */
+        .chat-messages::-webkit-scrollbar { width: 8px; }
+        .chat-messages::-webkit-scrollbar-thumb { background-color: #93c5fd; border-radius: 4px; }
+        .chat-messages::-webkit-scrollbar-track { background-color: #f0f4f8; }
+        /* Custom scrollbar styling (Firefox) */
+        .chat-messages { scrollbar-width: thin; scrollbar-color: #93c5fd #f0f4f8; }
+        /* Helper class to hide elements */
+        .hidden { display: none !important; }
+
+        /* Styling for voice button when actively listening */
+        .voice-listening {
+            background-color: #ef4444 !important; /* Red color when listening */
+            animation: pulse 1.5s infinite; /* Pulsing animation */
+        }
+        /* Keyframes for pulsing animation on voice button */
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); } /* Expand shadow */
+            100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); } /* Collapse shadow */
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">DBR's Companion</div>
+        
+        <div class="chat-messages" id="chatMessages">
+            </div>
+        
+        <div class="startup-questions-container" id="startupQuestionsContainer">
+            <p class="text-md text-gray-700 mb-3 font-medium">How would you like to begin our conversation today?</p>
+            </div>
+        
+        <div class="chat-input-area hidden" id="chatInputContainer">
+            <input type="text" id="userInput" placeholder="Type or say something..." autocomplete="off">
+            <button id="voiceInputBtn" title="Speak">
+                <i class="fas fa-microphone"></i> </button>
+            <button id="sendMessageBtn">Send</button>
+        </div>
+        
+        <div class="disclaimer">
+            DBR's is a supportive companion. For crisis support, please contact a professional. Responses are for guidance and not a substitute for therapy.
+        </div>
+    </div>
+
+    <script>
+        // DOM element references
+        const chatMessagesEl = document.getElementById('chatMessages');
+        const userInputEl = document.getElementById('userInput');
+        const sendMessageBtnEl = document.getElementById('sendMessageBtn');
+        const voiceInputBtnEl = document.getElementById('voiceInputBtn'); // Voice input button
+        const startupQuestionsContainerEl = document.getElementById('startupQuestionsContainer');
+        const chatInputContainerEl = document.getElementById('chatInputContainer');
+
+        // Configuration
+        const BACKEND_URL = 'https://dbrs-chatbot-app.onrender.com/chat'; // URL of your Flask backend        let conversationState = "awaiting_startup_choice"; // Initial conversation state
+        let conversationLog = []; // Array to store conversation history
+        const MAX_HISTORY_LENGTH = 10; // Max number of (user + assistant) messages to keep in history
+
+        // Startup questions definitions
+        const startupQuestions = [
+            { text: "Hi there! How are you feeling today?", id: "feeling_today"},
+            { text: "Would you like to talk about what’s on your mind?", id: "on_your_mind"},
+            { text: "Can I offer some relaxation techniques or motivational quotes?", id: "techniques_or_quotes"},
+            { text: "Would you like to track your mood today? (Demo)", id: "track_mood"}
+        ];
+
+        // --- Speech Recognition Setup ---
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        let recognition; // Speech recognition instance
+        let isListening = false; // Flag to track if recognition is active
+
+        if (SpeechRecognition) {
+            recognition = new SpeechRecognition();
+            recognition.continuous = false; // Stop listening after first pause in speech
+            recognition.lang = 'en-US';    // Language for recognition
+            recognition.interimResults = false; // Only final results, not intermediate ones
+            recognition.maxAlternatives = 1;    // Get only the top transcription alternative
+
+            // Called when speech recognition starts
+            recognition.onstart = () => {
+                isListening = true;
+                voiceInputBtnEl.classList.add('voice-listening'); // Apply listening style
+                voiceInputBtnEl.innerHTML = '<i class="fas fa-stop-circle"></i>'; // Change icon to "stop"
+                voiceInputBtnEl.title = "Stop Listening";
+                addTemporaryMessage("Listening...", "voice-status"); // Display "Listening..." message
+            };
+
+            // Called when a speech result is available
+            recognition.onresult = (event) => {
+                const transcript = event.results[event.results.length - 1][0].transcript.trim();
+                if (transcript) {
+                    userInputEl.value = transcript; // Populate input field with transcribed text
+                    handleUserInteraction(transcript); // Automatically send the transcribed text
+                } else {
+                    // If transcript is empty (e.g., silence)
+                    addTemporaryMessage("I didn't catch that. Could you please try again?", "voice-status", 3000);
+                }
+            };
+
+            // Called when a speech recognition error occurs
+            recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                let errorMessage = "Sorry, I couldn't understand. Please try again.";
+                if (event.error === 'no-speech') {
+                    errorMessage = "I didn't hear anything. Please tap the microphone and speak.";
+                } else if (event.error === 'audio-capture') {
+                    errorMessage = "No microphone found. Please ensure it's connected and enabled.";
+                } else if (event.error === 'not-allowed') {
+                    errorMessage = "Microphone access denied. Please enable it in your browser settings.";
+                }
+                addTemporaryMessage(errorMessage, "voice-status", 5000); // Display error for 5 seconds
+            };
+
+            // Called when speech recognition ends
+            recognition.onend = () => {
+                isListening = false;
+                voiceInputBtnEl.classList.remove('voice-listening'); // Remove listening style
+                voiceInputBtnEl.innerHTML = '<i class="fas fa-microphone"></i>'; // Reset icon to microphone
+                voiceInputBtnEl.title = "Speak";
+                removeTemporaryMessage("voice-status"); // Remove any "Listening..." message
+            };
+
+        } else {
+            // If Speech Recognition API is not supported by the browser
+            console.warn("Speech Recognition API not supported in this browser.");
+            if(voiceInputBtnEl) {
+                voiceInputBtnEl.disabled = true; // Disable voice button
+                voiceInputBtnEl.title = "Voice input not supported";
+            }
+        }
+        // --- End Speech Recognition Setup ---
+
+        /**
+         * Adds a temporary status message to the chat.
+         * @param {string} text - The message text.
+         * @param {string} id - An ID for the message type (e.g., "voice-status").
+         * @param {number|null} duration - How long to display the message in ms. Null means persistent until removed.
+         */
+        function addTemporaryMessage(text, id, duration = null) {
+            removeTemporaryMessage(id); // Remove any existing message with the same ID
+            const tempMessageDiv = document.createElement('div');
+            tempMessageDiv.id = `temp-${id}`; // Assign a unique ID for later removal
+            tempMessageDiv.classList.add('message', 'voice-status-message'); // Apply styling
+            tempMessageDiv.textContent = text;
+            chatMessagesEl.appendChild(tempMessageDiv);
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight; // Scroll to new message
+
+            if (duration) {
+                setTimeout(() => removeTemporaryMessage(id), duration); // Auto-remove after duration
+            }
+        }
+
+        /**
+         * Removes a temporary status message from the chat by its ID.
+         * @param {string} id - The ID of the message type to remove.
+         */
+        function removeTemporaryMessage(id) {
+            const existingTempMessage = document.getElementById(`temp-${id}`);
+            if (existingTempMessage) {
+                existingTempMessage.remove();
+            }
+        }
+
+        /**
+         * Adds a message (user or bot) to the chat display.
+         * @param {string} text - The message content.
+         * @param {string} sender - 'user' or 'bot'.
+         * @param {string} [type=''] - Optional type, e.g., 'thinking'.
+         */
+        function addMessage(text, sender, type = '') { 
+            const messageDiv = document.createElement('div');
+            let messageClass = 'message '; // Base class
+            if (sender === 'user') {
+                messageClass += 'user-message';
+            } else if (type === 'thinking') {
+                messageClass += 'bot-thinking-message';
+                messageDiv.id = 'thinkingIndicator'; // ID for "thinking" indicator
+            } else { // Bot's actual reply
+                messageClass += 'bot-message';
+            }
+            messageDiv.classList.add(...messageClass.trim().split(' ')); // Apply classes
+            
+            // Handle potential line breaks in bot messages (text from backend might have \n)
+            text.split('\n').forEach((line, index) => {
+                if (index > 0) messageDiv.appendChild(document.createElement('br')); // Add <br> for new lines
+                messageDiv.appendChild(document.createTextNode(line)); // Add text node for the line
+            });
+            
+            chatMessagesEl.appendChild(messageDiv);
+            chatMessagesEl.scrollTop = chatMessagesEl.scrollHeight; // Auto-scroll to the latest message
+        }
+
+        /**
+         * Displays the initial set of startup questions/buttons.
+         */
+        function showStartupQuestions() {
+            startupQuestionsContainerEl.classList.remove('hidden'); // Show question container
+            chatInputContainerEl.classList.add('hidden'); // Hide main chat input
+            
+            const pTag = startupQuestionsContainerEl.querySelector('p'); // Preserve the prompt paragraph
+            startupQuestionsContainerEl.innerHTML = ''; // Clear previous buttons
+            if (pTag) startupQuestionsContainerEl.appendChild(pTag); // Re-add the prompt
+
+            // Create and add a button for each startup question
+            startupQuestions.forEach((q) => {
+                const btn = document.createElement('button');
+                btn.classList.add('startup-question-btn');
+                btn.textContent = q.text;
+                // When a startup question button is clicked, its text is sent as the first message
+                btn.onclick = () => handleUserInteraction(q.text, 'awaiting_startup_choice');
+                startupQuestionsContainerEl.appendChild(btn);
+            });
+        }
+        
+        /**
+         * Trims the conversation log to maintain a maximum length.
+         */
+        function trimConversationLog() {
+            if (conversationLog.length > MAX_HISTORY_LENGTH) {
+                // Remove the oldest messages to keep the log size manageable
+                conversationLog = conversationLog.slice(conversationLog.length - MAX_HISTORY_LENGTH);
+            }
+        }
+
+        /**
+         * Handles user interaction (typed or spoken), sends message to backend, and processes response.
+         * @param {string} messageText - The user's message.
+         * @param {string|null} [currentStateOverride=null] - Optional state override (e.g., for startup questions).
+         */
+        async function handleUserInteraction(messageText, currentStateOverride = null) {
+            const trimmedMessage = messageText.trim();
+            if (!trimmedMessage) return; // Don't send empty messages
+
+            // Clear any temporary status messages (like "Listening...") or old "Thinking..." indicators
+            removeTemporaryMessage("voice-status"); 
+            const oldThinkingIndicator = document.getElementById('thinkingIndicator');
+            if (oldThinkingIndicator) oldThinkingIndicator.remove();
+
+            addMessage(trimmedMessage, 'user'); // Display user's message
+            conversationLog.push({ role: 'user', content: trimmedMessage }); // Add to history
+            trimConversationLog();
+
+            if (userInputEl.id === "userInput") userInputEl.value = ''; // Clear text input field
+
+            // If a startup question was chosen, switch UI from questions to chat input
+            if (currentStateOverride === 'awaiting_startup_choice') {
+                startupQuestionsContainerEl.classList.add('hidden');
+                chatInputContainerEl.classList.remove('hidden');
+                userInputEl.focus(); // Focus on the text input
+            }
+
+            addMessage("DBR's is thinking...", 'bot', 'thinking'); // Show "thinking" indicator
+            // Disable input elements while waiting for response
+            sendMessageBtnEl.disabled = true;
+            userInputEl.disabled = true;
+            if (voiceInputBtnEl) voiceInputBtnEl.disabled = true;
+
+            try {
+                // Fetch response from backend
+                const response = await fetch(BACKEND_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: trimmedMessage,
+                        conversationState: currentStateOverride || conversationState, // Use override if provided
+                        history: conversationLog // Send current conversation history
+                    }),
+                });
+
+                // Remove "thinking" indicator once response is (or about to be) processed
+                const currentThinkingIndicator = document.getElementById('thinkingIndicator');
+                if (currentThinkingIndicator) currentThinkingIndicator.remove();
+
+                if (!response.ok) { // Handle HTTP errors (e.g., 4xx, 5xx)
+                    let errorData;
+                    try { errorData = await response.json(); } 
+                    catch (e) { errorData = { reply: "Sorry, there was an issue understanding the server's response." }; }
+                    console.error('Server error:', response.status, errorData);
+                    const errorMessage = errorData.reply || `Error: ${response.status}. Please try again.`;
+                    addMessage(errorMessage, 'bot'); // Display error message to user
+                    if(errorData.newState) conversationState = errorData.newState; // Update state if backend provides it
+                    return; // Exit early on server error
+                }
+
+                const data = await response.json(); // Parse JSON response from backend
+                addMessage(data.reply, 'bot'); // Display bot's reply
+                conversationLog.push({ role: 'assistant', content: data.reply }); // Add bot's reply to history
+                trimConversationLog();
+                conversationState = data.newState; // Update conversation state from backend
+
+                // If backend signals to return to startup questions
+                if (conversationState === 'awaiting_startup_choice') {
+                    showStartupQuestions();
+                    conversationLog = []; // Clear history when returning to startup
+                }
+
+            } catch (error) { // Handle network errors or other fetch issues
+                console.error('Network or fetch error:', error);
+                const currentThinkingIndicator = document.getElementById('thinkingIndicator');
+                if (currentThinkingIndicator) currentThinkingIndicator.remove();
+                addMessage("I'm having trouble connecting. Please check your internet connection and if the DBR's service is running.", 'bot');
+            } finally {
+                // Re-enable input elements after processing is complete or an error occurs
+                sendMessageBtnEl.disabled = false;
+                userInputEl.disabled = false;
+                if (voiceInputBtnEl) voiceInputBtnEl.disabled = false;
+                // If chat input is visible, focus on the text field
+                if (!chatInputContainerEl.classList.contains('hidden')) {
+                    userInputEl.focus();
+                }
+            }
+        }
+
+        // Event listener for the "Send" button
+        sendMessageBtnEl.addEventListener('click', () => {
+            handleUserInteraction(userInputEl.value);
+        });
+
+        // Event listener for pressing "Enter" in the input field
+        userInputEl.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault(); // Prevent default form submission behavior (if any)
+                handleUserInteraction(userInputEl.value);
+            }
+        });
+
+        // Event listener for the Voice Input Button
+        if (voiceInputBtnEl && SpeechRecognition) { // Check if button and API exist
+            voiceInputBtnEl.addEventListener('click', () => {
+                if (!recognition) return; // Should not happen if API exists, but good check
+                if (isListening) {
+                    recognition.stop(); // If listening, stop recognition
+                } else {
+                    try {
+                        recognition.start(); // If not listening, start recognition
+                    } catch (e) {
+                        // Catch errors if recognition is already starting or in an error state
+                        console.error("Error starting recognition:", e);
+                        addTemporaryMessage("Could not start voice input. Please try again.", "voice-status", 3000);
+                         // Reset button state if start fails unexpectedly
+                        isListening = false;
+                        voiceInputBtnEl.classList.remove('voice-listening');
+                        voiceInputBtnEl.innerHTML = '<i class="fas fa-microphone"></i>';
+                        voiceInputBtnEl.title = "Speak";
+                    }
+                }
+            });
+        } else if (voiceInputBtnEl) { // If button exists but API doesn't
+             voiceInputBtnEl.title = "Voice input not supported by your browser";
+             voiceInputBtnEl.onclick = () => { // Inform user on click if API is not supported
+                addTemporaryMessage("Voice input is not supported by your browser.", "voice-status", 4000);
+             }
+        }
+
+        /**
+         * Initializes the chat application on page load.
+         */
+        function initializeChat() {
+            setTimeout(() => { // Short delay for a smoother perceived load
+                const welcomeMessage = "Welcome to DBR's Companion! I'm here to listen and support you. You can type or tap the microphone to speak.";
+                addMessage(welcomeMessage, 'bot');
+                conversationLog.push({ role: 'assistant', content: welcomeMessage }); // Add welcome to history
+                trimConversationLog();
+                showStartupQuestions(); // Display initial startup questions
+            }, 300); 
+        }
+
+        // Start the chat application
+        initializeChat();
+
+    </script>
+</body>
+</html>
